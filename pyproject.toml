@@ -1,0 +1,96 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wjpy"
+version = "0.2.0"
+description = "Weighted Jaccard pairing-family decomposition for correlation network analysis"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Drake H. Harbert", email = "Drake@innerarchitecturellc.com"},
+]
+maintainers = [
+    {name = "Drake H. Harbert", email = "Drake@innerarchitecturellc.com"},
+]
+requires-python = ">=3.8"
+keywords = [
+    "weighted-jaccard",
+    "correlation-network",
+    "regime-detection",
+    "pairing-family",
+    "genomics",
+    "finance",
+    "industrial-monitoring",
+    "ecology",
+    "brain-connectivity",
+    "scientific-computing",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "numpy>=1.20",
+    "scipy>=1.6",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "build>=1.0",
+    "twine>=4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/nwharbert8-ui/wjpy"
+Documentation = "https://github.com/nwharbert8-ui/wjpy#readme"
+Repository = "https://github.com/nwharbert8-ui/wjpy"
+Issues = "https://github.com/nwharbert8-ui/wjpy/issues"
+"Methodology DOI" = "https://doi.org/10.5281/zenodo.19025536"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["wjpy*"]
+exclude = ["tests*", "examples*", "dist*", "*.egg-info*"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "UP"]
+ignore = ["E501"]  # line-too-long handled by formatter
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
