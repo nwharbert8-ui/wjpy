@@ -76,6 +76,7 @@ def main():
     print()
     print(f"  Type 2 gap (signed - unsigned): {div['gap']:+.4f}")
     print(f"  Sign-driven reorganization:     {div['sign_inversion_pct']:.1f}%")
+    print(f"  Magnitude-driven reorganization:{div['magnitude_change_pct']:>6.1f}%")
     print()
     print("This is the methodology that detected the 2022-07 financial market")
     print("regime documented in Harbert (2026, Physica A, in revision).")

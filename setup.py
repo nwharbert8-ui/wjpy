@@ -8,7 +8,7 @@ with open(os.path.join(here, "README.md"), "r", encoding="utf-8") as f:
 
 setup(
     name="wjpy",
-    version="0.2.0",
+    version="0.2.1",
     description=(
         "Weighted Jaccard methodology for correlation network analysis. "
         "Bidirectional regime detection and pairing-family decomposition."

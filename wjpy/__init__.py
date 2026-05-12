@@ -28,7 +28,7 @@ from .core import (
     weighted_jaccard_chunked,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "Drake H. Harbert"
 __email__ = "Drake@innerarchitecturellc.com"
 __license__ = "MIT"

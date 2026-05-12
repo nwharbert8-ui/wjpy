@@ -94,15 +94,26 @@ class TestKnownAnswers:
         assert binary_jaccard(M, N, threshold=0.3) == pytest.approx(2.0 / 3.0)
 
     def test_pure_sign_inversion_decomposed_as_pure_sign(self):
-        # Sign-only inversion: unsigned WJ = 1, gap measures the inversion.
-        # With unsigned WJ = 1, reorg_unsigned = 0, so sign_inv_pct = 0
-        # by convention (no reorganization to decompose at unsigned level).
+        # Sign-only inversion: unsigned WJ = 1 (blind to the flip), signed WJ
+        # much smaller. The reorganization is therefore 100% sign-driven and
+        # 0% magnitude-driven.
         P = np.array([[1.0, 0.8], [0.8, 1.0]])
         Q = np.array([[1.0, -0.8], [-0.8, 1.0]])
         div = implementation_divergence(P, Q)
         assert div["wj_unsigned"] == pytest.approx(1.0)
         assert div["wj_signed"] < 0.5  # signed WJ much smaller
         assert div["gap"] < 0  # signed < unsigned for sign flip
+        assert div["sign_inversion_pct"] == pytest.approx(100.0)
+        assert div["magnitude_change_pct"] == pytest.approx(0.0)
+
+    def test_pure_magnitude_change_decomposed_as_pure_magnitude(self):
+        # Same-sign magnitude change, no inversions: 0% sign-driven,
+        # 100% magnitude-driven.
+        P = np.array([[1.0, 0.8], [0.8, 1.0]])
+        R = np.array([[1.0, 0.2], [0.2, 1.0]])
+        div = implementation_divergence(P, R)
+        assert div["sign_inversion_pct"] == pytest.approx(0.0)
+        assert div["magnitude_change_pct"] == pytest.approx(100.0)
 
 
 # ---------------------------------------------------------------------------
@@ -224,14 +235,32 @@ class TestCrossFunctionConsistency:
     """Functions that should agree on shared computations do agree."""
 
     def test_divergence_components_sum_to_100(self):
-        # When there IS reorganization at unsigned level, components sum to 100.
+        # Two independent random correlation matrices always carry some
+        # reorganization, so the two percentages must sum to 100.
         rng = np.random.default_rng(42)
         A = fast_spearman_matrix(rng.standard_normal((10, 50)))
         B = fast_spearman_matrix(rng.standard_normal((10, 50)))
         div = implementation_divergence(A, B)
-        if 1.0 - div["wj_unsigned"] > 1e-6:
-            total = div["sign_inversion_pct"] + div["magnitude_change_pct"]
-            assert total == pytest.approx(100.0, abs=1e-6)
+        total = div["sign_inversion_pct"] + div["magnitude_change_pct"]
+        assert total == pytest.approx(100.0, abs=1e-6)
+
+    def test_divergence_components_zero_for_identical_matrices(self):
+        # Identical matrices: no reorganization, so both percentages are 0.
+        rng = np.random.default_rng(42)
+        corr = fast_spearman_matrix(rng.standard_normal((10, 50)))
+        div = implementation_divergence(corr, corr)
+        assert div["sign_inversion_pct"] == pytest.approx(0.0)
+        assert div["magnitude_change_pct"] == pytest.approx(0.0)
+
+    def test_divergence_percentages_in_unit_range(self):
+        # Both percentages stay within [0, 100] for arbitrary inputs.
+        rng = np.random.default_rng(7)
+        for _ in range(20):
+            A = fast_spearman_matrix(rng.standard_normal((12, 40)))
+            B = fast_spearman_matrix(rng.standard_normal((12, 40)))
+            div = implementation_divergence(A, B)
+            assert 0.0 <= div["sign_inversion_pct"] <= 100.0
+            assert 0.0 <= div["magnitude_change_pct"] <= 100.0
 
     def test_divergence_keys_present(self):
         rng = np.random.default_rng(42)

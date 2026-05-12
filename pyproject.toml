@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wjpy"
-version = "0.2.0"
+version = "0.2.1"
 description = "Weighted Jaccard pairing-family decomposition for correlation network analysis"
 readme = "README.md"
 license = {text = "MIT"}

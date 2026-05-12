@@ -3,6 +3,31 @@
 All notable changes to `wjpy` are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-05-12
+
+### Fixed
+- **`implementation_divergence` decomposition was inverted.** On a pure sign
+  inversion (`r = +0.8 → r = -0.8`), the unsigned Weighted Jaccard is 1.0 by
+  design (blind to sign), which made the previous normalization divide by zero
+  and report `sign_inversion_pct = 0.0` / `magnitude_change_pct = 100.0` — the
+  opposite of correct. Mixed cases produced negative percentages and values
+  above 100%. The decomposition is now built from two non-negative pieces —
+  `magnitude_dissimilarity = max(0, 1 - wj_unsigned)` and
+  `sign_dissimilarity = max(0, wj_unsigned - wj_signed)` — normalized to their
+  sum. A pure sign inversion now correctly reports 100% sign-driven; a pure
+  magnitude change reports 100% magnitude-driven; both percentages lie in
+  `[0, 100]` and sum to 100 whenever any reorganization is present (and are
+  both 0.0 only for identical matrices). `sign_inversion_pct` is documented as
+  a conservative estimate (it is 0 when magnitude changes dominate the gap).
+- Updated `tests/test_core.py`: `test_pure_sign_inversion_decomposed_as_pure_sign`
+  now asserts the corrected 100%/0% split (previously it asserted only `gap < 0`,
+  side-stepping the bug). Added `test_pure_magnitude_change_decomposed_as_pure_magnitude`,
+  `test_divergence_components_zero_for_identical_matrices`, and
+  `test_divergence_percentages_in_unit_range`. `test_divergence_components_sum_to_100`
+  is now unconditional for random matrix pairs.
+- The `implementation_divergence` docstring and doctests now reflect the
+  corrected behavior.
+
 ## [0.2.0] - 2026-05-11
 
 ### Added

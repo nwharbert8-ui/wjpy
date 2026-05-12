@@ -218,11 +218,24 @@ def binary_jaccard(
 def implementation_divergence(
     corr_a: ArrayLike, corr_b: ArrayLike
 ) -> Dict[str, float]:
-    """Decompose reorganization into magnitude and sign-inversion components.
+    """Decompose architectural reorganization into magnitude and sign components.
 
-    The gap between unsigned and signed Weighted Jaccard quantifies how much
-    of the total reorganization is attributable to sign inversions versus
-    magnitude changes. This is the Type 2 pairing-family decomposition.
+    The unsigned Weighted Jaccard is blind to correlation-sign inversions
+    (``r = +0.8 -> r = -0.8`` scores as zero change). The signed Weighted
+    Jaccard detects them. The relationship between the two is the basis of the
+    Type 2 pairing-family decomposition: how much of the total detected
+    reorganization is attributable to sign inversions versus magnitude changes.
+
+    The decomposition is built from two non-negative pieces:
+
+    - ``magnitude_dissimilarity = max(0, 1 - wj_unsigned)`` -- the dissimilarity
+      already visible to the sign-blind metric.
+    - ``sign_dissimilarity = max(0, wj_unsigned - wj_signed)`` -- the additional
+      dissimilarity the sign-aware metric detects beyond it. This is a
+      *conservative* estimate of sign-driven reorganization: it is zero when
+      magnitude changes dominate the comparison.
+
+    The two percentages are these pieces normalized to their sum.
 
     Parameters
     ----------
@@ -234,45 +247,61 @@ def implementation_divergence(
     dict
         Dictionary with keys:
 
-        - ``wj_unsigned``: unsigned Weighted Jaccard (float in [0, 1])
-        - ``wj_signed``: signed Weighted Jaccard (float in [0, 1])
-        - ``gap``: signed minus unsigned WJ (float)
-        - ``sign_inversion_pct``: percentage of reorganization from sign
-          flips (float in [0, 100])
-        - ``magnitude_change_pct``: percentage from magnitude changes
-          (float in [0, 100]). Sums to 100 with sign_inversion_pct.
+        - ``wj_unsigned``: unsigned Weighted Jaccard (float in [0, 1]).
+        - ``wj_signed``: signed Weighted Jaccard (float in [0, 1]).
+        - ``gap``: ``wj_signed - wj_unsigned`` (float). Negative when sign
+          inversions drive the reorganization; >= 0 when magnitude changes
+          dominate.
+        - ``sign_inversion_pct``: share of total detected reorganization
+          attributable to sign inversions (float in [0, 100]; conservative).
+        - ``magnitude_change_pct``: share attributable to magnitude changes
+          (float in [0, 100]). ``sign_inversion_pct + magnitude_change_pct``
+          equals 100 whenever any reorganization is present; both are 0.0 only
+          when the two matrices are identical.
 
     Examples
     --------
     >>> import numpy as np
     >>> from wjpy import implementation_divergence
     >>> P = np.array([[1.0,  0.8], [0.8, 1.0]])
-    >>> Q = np.array([[1.0, -0.8], [-0.8, 1.0]])
+    >>> Q = np.array([[1.0, -0.8], [-0.8, 1.0]])  # pure sign inversion
     >>> div = implementation_divergence(P, Q)
-    >>> # Pure sign inversion: unsigned WJ = 1.0, signed WJ < 1.0
-    >>> round(div["sign_inversion_pct"], 1)
+    >>> round(div["wj_unsigned"], 4)        # unsigned WJ is blind to the flip
+    1.0
+    >>> round(div["sign_inversion_pct"], 1)  # ... but it is 100% sign-driven
+    100.0
+    >>> round(div["magnitude_change_pct"], 1)
     0.0
+    >>> R = np.array([[1.0, 0.2], [0.2, 1.0]])  # pure magnitude change
+    >>> div2 = implementation_divergence(P, R)
+    >>> round(div2["sign_inversion_pct"], 1)
+    0.0
+    >>> round(div2["magnitude_change_pct"], 1)
+    100.0
     """
     a, b = _validate_matrix_pair(corr_a, corr_b)
     wj_u = weighted_jaccard(a, b)
     wj_s = signed_weighted_jaccard(a, b)
     gap = wj_s - wj_u
-    reorg_unsigned = 1.0 - wj_u
-    if reorg_unsigned > 1e-10:
-        sign_inv_pct = (gap / reorg_unsigned) * 100.0
-        sign_inv_pct = float(np.clip(sign_inv_pct, -100.0, 100.0))
-        magnitude_pct = 100.0 - sign_inv_pct
+    # Dissimilarity already visible to the (sign-blind) unsigned metric:
+    magnitude_dissimilarity = max(0.0, 1.0 - wj_u)
+    # Additional dissimilarity the sign-aware metric detects beyond it
+    # (a conservative lower bound on sign-driven reorganization):
+    sign_dissimilarity = max(0.0, -gap)
+    total = magnitude_dissimilarity + sign_dissimilarity
+    if total > 1e-12:
+        sign_inv_pct = 100.0 * sign_dissimilarity / total
+        magnitude_pct = 100.0 * magnitude_dissimilarity / total
     else:
-        # Architectures are identical at unsigned level; no reorganization
-        # to decompose. Set to magnitude=100, sign=0 as a default.
+        # Matrices are identical -- no reorganization to decompose.
         sign_inv_pct = 0.0
-        magnitude_pct = 100.0
+        magnitude_pct = 0.0
     return {
         "wj_unsigned": wj_u,
         "wj_signed": wj_s,
         "gap": gap,
-        "sign_inversion_pct": sign_inv_pct,
-        "magnitude_change_pct": magnitude_pct,
+        "sign_inversion_pct": float(sign_inv_pct),
+        "magnitude_change_pct": float(magnitude_pct),
     }
 
 
